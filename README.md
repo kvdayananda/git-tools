@@ -1,24 +1,23 @@
-# Nexus REST API & Telemetry Engine
+# Sentient NLP Classification & Sentiment Engine
 
-High-performance modular REST API service featuring metric ingestion, health telemetry, and status reporting.
+Lexicon and token-frequency text classification engine with polarity scoring and intent categorization.
 
 ## Target Complexity & Language
 - **Language:** python
 - **Complexity:** medium
 
 ## Problem Statement
-Distributed microservices require an authenticated, low-overhead endpoint to aggregate periodic operational heartbeats and metrics.
+Automated pipelines need fast text classification and sentiment detection without heavy multi-gigabyte neural weight dependencies.
 
 ## Key Features
-- Payload ingestion with Pydantic validation
-- In-memory time-series metric registry with moving averages
-- System health and uptime telemetry endpoints
-- JSON format export and query filtering by service name
+- N-gram tokenizer with stop-word suppression
+- Polarity score calculator (-1.0 to +1.0 scale)
+- Multi-class intent classifier (inquiry, bug_report, praise, complaint)
+- Batch text evaluation with confidence intervals
 
 ## Technology Stack
 - Python 3.12
-- FastAPI / Starlette
-- Pydantic
+- Math / Statistics
 - Pytest
 
 
