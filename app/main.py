@@ -1,27 +1,21 @@
-"""Main Application Entry Point."""
-from app.core import MetricRecord, TelemetryRegistry
-
-registry = TelemetryRegistry()
+"""CodeLens Main Entry Point."""
+from app.core import FileMetric, analyze_source_text, summarize_metrics
 
 
-def ingest_payload(data: dict) -> dict:
-    rec = MetricRecord(
-        service_id=data["service_id"],
-        cpu_percent=float(data["cpu_percent"]),
-        memory_mb=float(data["memory_mb"]),
-        status=data.get("status", "healthy"),
-    )
-    registry.record_metric(rec)
-    return {
-        "status": "recorded",
-        "service_id": rec.service_id,
-        "average_cpu": registry.compute_average_cpu(rec.service_id),
-    }
+class CodeLensApp:
+    def __init__(self) -> None:
+        self.metrics: list[FileMetric] = []
 
+    def scan_file(self, filename: str, content: str) -> FileMetric:
+        metric = analyze_source_text(filename, content)
+        self.metrics.append(metric)
+        return metric
 
-def get_health_status() -> dict:
-    return {
-        "status": "operational",
-        "total_metrics_recorded": registry.total_count(),
-        "overall_average_cpu": registry.compute_average_cpu(),
-    }
+    def get_report(self) -> dict:
+        summary = summarize_metrics(self.metrics)
+        hotspots = [m.path for m in self.metrics if m.code_lines > 200]
+        return {
+            "summary": summary,
+            "hotspots": hotspots,
+            "status": "ready",
+        }

@@ -1,41 +1,29 @@
-"""Tests for Nexus Telemetry API."""
-import pytest
-from app.core import MetricRecord, TelemetryRegistry
-from app.main import ingest_payload, get_health_status, registry
+"""Tests for CodeLens Inspector."""
+from app.core import analyze_source_text, summarize_metrics
+from app.main import CodeLensApp
 
 
-def setup_function():
-    registry._records.clear()
+def test_analyze_source():
+    code = """# File header
+def add(a, b):
+    # Perform sum
+    return a + b
+
+"""
+    m = analyze_source_text("calc.py", code)
+    assert m.total_lines == 5
+    assert m.comment_lines == 2
+    assert m.blank_lines == 1
+    assert m.code_lines == 2
 
 
-def test_metric_validation():
-    valid = MetricRecord("auth-svc", 45.5, 512.0)
-    valid.validate()
-    assert valid.service_id == "auth-svc"
+def test_summarize_metrics():
+    app = CodeLensApp()
+    app.scan_file("a.py", "x = 1\ny = 2")
+    app.scan_file("b.py", "# Comment\n\nz = 3")
+    report = app.get_report()
 
-    with pytest.raises(ValueError):
-        MetricRecord("", 10.0, 100.0).validate()
-
-    with pytest.raises(ValueError):
-        MetricRecord("svc", 150.0, 100.0).validate()
-
-
-def test_registry_averaging():
-    reg = TelemetryRegistry()
-    reg.record_metric(MetricRecord("api", 20.0, 200.0))
-    reg.record_metric(MetricRecord("api", 40.0, 220.0))
-    reg.record_metric(MetricRecord("worker", 90.0, 1000.0))
-
-    assert reg.compute_average_cpu("api") == 30.0
-    assert reg.compute_average_cpu("worker") == 90.0
-    assert reg.compute_average_cpu() == 50.0
-
-
-def test_ingest_and_health():
-    res = ingest_payload({"service_id": "gateway", "cpu_percent": 15.0, "memory_mb": 128.0})
-    assert res["status"] == "recorded"
-    assert res["average_cpu"] == 15.0
-
-    health = get_health_status()
-    assert health["status"] == "operational"
-    assert health["total_metrics_recorded"] == 1
+    assert report["summary"]["files_analyzed"] == 2
+    assert report["summary"]["code_lines"] == 3
+    assert report["summary"]["comment_lines"] == 1
+    assert report["summary"]["blank_lines"] == 1

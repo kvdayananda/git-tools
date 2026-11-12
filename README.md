@@ -1,24 +1,23 @@
-# Nexus REST API & Telemetry Engine
+# CodeLens Project Architecture & Metric Inspector
 
-High-performance modular REST API service featuring metric ingestion, health telemetry, and status reporting.
+Static code metrics analyzer that scans directories, computes line metrics, and identifies complexity hotspots.
 
 ## Target Complexity & Language
 - **Language:** python
 - **Complexity:** medium
 
 ## Problem Statement
-Distributed microservices require an authenticated, low-overhead endpoint to aggregate periodic operational heartbeats and metrics.
+Engineering teams need fast, local repository analysis to audit comment ratios, blank lines, and file distribution.
 
 ## Key Features
-- Payload ingestion with Pydantic validation
-- In-memory time-series metric registry with moving averages
-- System health and uptime telemetry endpoints
-- JSON format export and query filtering by service name
+- Multi-extension code file detection (.py, .js, .ts, .go, .rs)
+- Granular metric computation (total lines, blank lines, comments, code lines)
+- Complexity hotspot detection based on file length thresholds
+- Markdown summary report generator
 
 ## Technology Stack
 - Python 3.12
-- FastAPI / Starlette
-- Pydantic
+- Dataclasses
 - Pytest
 
 
