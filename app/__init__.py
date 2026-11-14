@@ -1,2 +1,2 @@
-"""Application package for Sentient NLP Classification & Sentiment Engine."""
+"""Application package for TaskPulse Scheduled Workflow & Dispatcher."""
 __version__ = "0.1.0"
