@@ -1,33 +1,29 @@
-"""Tests for Sentient NLP Engine."""
-from app.core import compute_sentiment, classify_intent
-from app.main import SentientAnalyzer
+"""Tests for TaskPulse Dispatcher."""
+from app.core import Job, JobQueue
+from app.main import TaskPulseEngine
 
 
-def test_positive_sentiment():
-    score, label = compute_sentiment("This tool is great, fast, and awesome!")
-    assert score > 0.0
-    assert label == "positive"
+def test_priority_queueing():
+    q = JobQueue()
+    q.enqueue(Job("1", "low_job", priority=1))
+    q.enqueue(Job("2", "high_job", priority=3))
+    q.enqueue(Job("3", "mid_job", priority=2))
+
+    first = q.pop_next()
+    assert first.id == "2"
+    second = q.pop_next()
+    assert second.id == "3"
 
 
-def test_negative_sentiment():
-    score, label = compute_sentiment("Encountered a bad bug and a terrible crash.")
-    assert score < 0.0
-    assert label == "negative"
+def test_retry_mechanism():
+    engine = TaskPulseEngine()
+    engine.submit_job("j1", "test_job", priority=2)
 
+    def failing_executor(job):
+        raise RuntimeError("Transient network timeout")
 
-def test_neutral_sentiment():
-    score, label = compute_sentiment("The application received a data package.")
-    assert score == 0.0
-    assert label == "neutral"
-
-
-def test_intent_classification():
-    assert classify_intent("How do I configure the server?") == "inquiry"
-    assert classify_intent("Critical error on startup!") == "bug_report"
-    assert classify_intent("Thanks for the great release!") == "praise"
-
-
-def test_analyzer_facade():
-    res = SentientAnalyzer.process("Great work on delivering the awesome release!")
-    assert res["sentiment_label"] == "positive"
-    assert "sentiment_score" in res
+    status = engine.run_worker_cycle(failing_executor)
+    assert status == "failed_or_requeued"
+    job = engine.queue.jobs[0]
+    assert job.retries_left == 2
+    assert job.status == "queued"

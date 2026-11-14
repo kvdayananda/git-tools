@@ -1,44 +1,47 @@
-"""Sentient NLP Core Engine."""
-import re
-from typing import Dict, List, Tuple
-
-POSITIVE_LEXICON = {"great", "excellent", "fast", "love", "awesome", "good", "reliable", "easy", "clean"}
-NEGATIVE_LEXICON = {"bad", "slow", "error", "fail", "broken", "hate", "issue", "crash", "terrible", "bug"}
+"""TaskPulse Core Engine."""
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Callable, Optional
 
 
-def tokenize(text: str) -> List[str]:
-    return [w.lower() for w in re.findall(r"\b[a-zA-Z]{2,}\b", text)]
+@dataclass
+class Job:
+    id: str
+    name: str
+    priority: int = 1
+    max_retries: int = 3
+    retries_left: int = 3
+    status: str = "queued"
+    error: Optional[str] = None
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
-def compute_sentiment(text: str) -> Tuple[float, str]:
-    tokens = tokenize(text)
-    if not tokens:
-        return 0.0, "neutral"
+class JobQueue:
+    def __init__(self) -> None:
+        self.jobs: list[Job] = []
 
-    pos_count = sum(1 for t in tokens if t in POSITIVE_LEXICON)
-    neg_count = sum(1 for t in tokens if t in NEGATIVE_LEXICON)
-    total = pos_count + neg_count
+    def enqueue(self, job: Job) -> None:
+        self.jobs.append(job)
+        self.jobs.sort(key=lambda j: j.priority, reverse=True)
 
-    if total == 0:
-        return 0.0, "neutral"
+    def pop_next(self) -> Optional[Job]:
+        for j in self.jobs:
+            if j.status == "queued":
+                j.status = "running"
+                return j
+        return None
 
-    score = round((pos_count - neg_count) / total, 3)
-    if score > 0.15:
-        label = "positive"
-    elif score < -0.15:
-        label = "negative"
-    else:
-        label = "neutral"
+    def complete_job(self, job_id: str) -> None:
+        for j in self.jobs:
+            if j.id == job_id:
+                j.status = "succeeded"
 
-    return score, label
-
-
-def classify_intent(text: str) -> str:
-    tokens = set(tokenize(text))
-    if {"bug", "crash", "error", "fail", "broken"} & tokens:
-        return "bug_report"
-    if {"how", "why", "help", "question", "docs"} & tokens:
-        return "inquiry"
-    if {"love", "great", "thanks", "awesome"} & tokens:
-        return "praise"
-    return "general_feedback"
+    def fail_job(self, job_id: str, error: str) -> None:
+        for j in self.jobs:
+            if j.id == job_id:
+                j.retries_left -= 1
+                j.error = error
+                if j.retries_left > 0:
+                    j.status = "queued"
+                else:
+                    j.status = "failed"

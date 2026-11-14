@@ -1,23 +1,23 @@
-# Sentient NLP Classification & Sentiment Engine
+# TaskPulse Scheduled Workflow & Dispatcher
 
-Lexicon and token-frequency text classification engine with polarity scoring and intent categorization.
+Reliable job scheduler and webhook event dispatcher with exponential backoff and audit logs.
 
 ## Target Complexity & Language
 - **Language:** python
 - **Complexity:** medium
 
 ## Problem Statement
-Automated pipelines need fast text classification and sentiment detection without heavy multi-gigabyte neural weight dependencies.
+Automated operations need a predictable execution engine that handles transient task failures with retries.
 
 ## Key Features
-- N-gram tokenizer with stop-word suppression
-- Polarity score calculator (-1.0 to +1.0 scale)
-- Multi-class intent classifier (inquiry, bug_report, praise, complaint)
-- Batch text evaluation with confidence intervals
+- Priority-based job queue (critical, normal, low)
+- Retry mechanism with exponential backoff calculation
+- Execution status tracking (pending, running, succeeded, failed)
+- Audit trail recording timestamps and error summaries
 
 ## Technology Stack
 - Python 3.12
-- Math / Statistics
+- Dataclasses
 - Pytest
 
 

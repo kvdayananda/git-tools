@@ -1,15 +1,24 @@
-"""Sentient NLP Main Application."""
-from app.core import classify_intent, compute_sentiment
+"""TaskPulse Main Entry Point."""
+from app.core import Job, JobQueue
 
 
-class SentientAnalyzer:
-    @staticmethod
-    def process(text: str) -> dict:
-        score, label = compute_sentiment(text)
-        intent = classify_intent(text)
-        return {
-            "text": text,
-            "sentiment_score": score,
-            "sentiment_label": label,
-            "predicted_intent": intent,
-        }
+class TaskPulseEngine:
+    def __init__(self) -> None:
+        self.queue = JobQueue()
+
+    def submit_job(self, job_id: str, name: str, priority: int = 1) -> Job:
+        job = Job(id=job_id, name=name, priority=priority)
+        self.queue.enqueue(job)
+        return job
+
+    def run_worker_cycle(self, executor: callable) -> str:
+        job = self.queue.pop_next()
+        if not job:
+            return "idle"
+        try:
+            executor(job)
+            self.queue.complete_job(job.id)
+            return "succeeded"
+        except Exception as e:
+            self.queue.fail_job(job.id, str(e))
+            return "failed_or_requeued"
