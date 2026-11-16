@@ -1,15 +1,15 @@
-"""Sentient NLP Main Application."""
-from app.core import classify_intent, compute_sentiment
+"""CommitGuard Main Application."""
+from app.core import validate_commit, ValidationResult
 
 
-class SentientAnalyzer:
+class CommitGuard:
     @staticmethod
-    def process(text: str) -> dict:
-        score, label = compute_sentiment(text)
-        intent = classify_intent(text)
+    def check(msg: str) -> dict:
+        result = validate_commit(msg)
         return {
-            "text": text,
-            "sentiment_score": score,
-            "sentiment_label": label,
-            "predicted_intent": intent,
+            "valid": result.is_valid,
+            "type": result.type,
+            "scope": result.scope,
+            "breaking": result.is_breaking,
+            "error": result.error,
         }

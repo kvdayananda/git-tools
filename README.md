@@ -1,23 +1,23 @@
-# Sentient NLP Classification & Sentiment Engine
+# CommitGuard Conventional Git & Hook Validator
 
-Lexicon and token-frequency text classification engine with polarity scoring and intent categorization.
+Conventional commit format and git message linter ensuring clean semantic release versioning.
 
 ## Target Complexity & Language
 - **Language:** python
 - **Complexity:** medium
 
 ## Problem Statement
-Automated pipelines need fast text classification and sentiment detection without heavy multi-gigabyte neural weight dependencies.
+Engineering repositories suffer from inconsistent commit messages which break automated changelog generators.
 
 ## Key Features
-- N-gram tokenizer with stop-word suppression
-- Polarity score calculator (-1.0 to +1.0 scale)
-- Multi-class intent classifier (inquiry, bug_report, praise, complaint)
-- Batch text evaluation with confidence intervals
+- Standard conventional commit type verification
+- Optional scope syntax parser (e.g., feat(auth): ...)
+- Subject line capitalization and length validation (<= 72 chars)
+- Breaking change marker detection (! or BREAKING CHANGE)
 
 ## Technology Stack
 - Python 3.12
-- Math / Statistics
+- Regex
 - Pytest
 
 

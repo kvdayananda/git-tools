@@ -1,33 +1,32 @@
-"""Tests for Sentient NLP Engine."""
-from app.core import compute_sentiment, classify_intent
-from app.main import SentientAnalyzer
+"""Tests for CommitGuard Validator."""
+from app.core import validate_commit
+from app.main import CommitGuard
 
 
-def test_positive_sentiment():
-    score, label = compute_sentiment("This tool is great, fast, and awesome!")
-    assert score > 0.0
-    assert label == "positive"
+def test_valid_commits():
+    res1 = validate_commit("feat(auth): implement token rotation")
+    assert res1.is_valid is True
+    assert res1.type == "feat"
+    assert res1.scope == "auth"
+
+    res2 = validate_commit("fix: resolve off-by-one index error")
+    assert res2.is_valid is True
+    assert res2.scope is None
 
 
-def test_negative_sentiment():
-    score, label = compute_sentiment("Encountered a bad bug and a terrible crash.")
-    assert score < 0.0
-    assert label == "negative"
+def test_invalid_commits():
+    assert validate_commit("feat: Implement user login").is_valid is False
+    assert validate_commit("fix: correct calculation.").is_valid is False
+    assert validate_commit("random: unexpected update").is_valid is False
 
 
-def test_neutral_sentiment():
-    score, label = compute_sentiment("The application received a data package.")
-    assert score == 0.0
-    assert label == "neutral"
+def test_breaking_change():
+    res = validate_commit("feat(api)!: remove deprecated v1 endpoints")
+    assert res.is_valid is True
+    assert res.is_breaking is True
 
 
-def test_intent_classification():
-    assert classify_intent("How do I configure the server?") == "inquiry"
-    assert classify_intent("Critical error on startup!") == "bug_report"
-    assert classify_intent("Thanks for the great release!") == "praise"
-
-
-def test_analyzer_facade():
-    res = SentientAnalyzer.process("Great work on delivering the awesome release!")
-    assert res["sentiment_label"] == "positive"
-    assert "sentiment_score" in res
+def test_facade():
+    res = CommitGuard.check("docs(readme): add installation instructions")
+    assert res["valid"] is True
+    assert res["type"] == "docs"

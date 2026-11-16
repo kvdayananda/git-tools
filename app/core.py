@@ -1,44 +1,48 @@
-"""Sentient NLP Core Engine."""
+"""CommitGuard Core Engine."""
 import re
-from typing import Dict, List, Tuple
+from dataclasses import dataclass
+from typing import Optional
 
-POSITIVE_LEXICON = {"great", "excellent", "fast", "love", "awesome", "good", "reliable", "easy", "clean"}
-NEGATIVE_LEXICON = {"bad", "slow", "error", "fail", "broken", "hate", "issue", "crash", "terrible", "bug"}
-
-
-def tokenize(text: str) -> List[str]:
-    return [w.lower() for w in re.findall(r"\b[a-zA-Z]{2,}\b", text)]
+ALLOWED_TYPES = {"feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"}
+PATTERN = re.compile(r"^([a-z]+)(?:\(([a-zA-Z0-9_-]+)\))?(!)?:\s+(.+)$")
 
 
-def compute_sentiment(text: str) -> Tuple[float, str]:
-    tokens = tokenize(text)
-    if not tokens:
-        return 0.0, "neutral"
-
-    pos_count = sum(1 for t in tokens if t in POSITIVE_LEXICON)
-    neg_count = sum(1 for t in tokens if t in NEGATIVE_LEXICON)
-    total = pos_count + neg_count
-
-    if total == 0:
-        return 0.0, "neutral"
-
-    score = round((pos_count - neg_count) / total, 3)
-    if score > 0.15:
-        label = "positive"
-    elif score < -0.15:
-        label = "negative"
-    else:
-        label = "neutral"
-
-    return score, label
+@dataclass
+class ValidationResult:
+    is_valid: bool
+    type: Optional[str] = None
+    scope: Optional[str] = None
+    is_breaking: bool = False
+    description: Optional[str] = None
+    error: Optional[str] = None
 
 
-def classify_intent(text: str) -> str:
-    tokens = set(tokenize(text))
-    if {"bug", "crash", "error", "fail", "broken"} & tokens:
-        return "bug_report"
-    if {"how", "why", "help", "question", "docs"} & tokens:
-        return "inquiry"
-    if {"love", "great", "thanks", "awesome"} & tokens:
-        return "praise"
-    return "general_feedback"
+def validate_commit(message: str) -> ValidationResult:
+    header = message.strip().splitlines()[0] if message.strip() else ""
+    if not header:
+        return ValidationResult(is_valid=False, error="Commit message is empty.")
+
+    if len(header) > 72:
+        return ValidationResult(is_valid=False, error=f"Header exceeds 72 characters ({len(header)} chars).")
+
+    match = PATTERN.match(header)
+    if not match:
+        return ValidationResult(is_valid=False, error="Does not match format: '<type>(<scope>): <description>'")
+
+    commit_type, scope, breaking_marker, desc = match.groups()
+    if commit_type not in ALLOWED_TYPES:
+        return ValidationResult(is_valid=False, error=f"Invalid type '{commit_type}'. Allowed: {sorted(ALLOWED_TYPES)}")
+
+    if desc[0].isupper():
+        return ValidationResult(is_valid=False, error="Description should start with a lowercase letter.")
+
+    if desc.endswith("."):
+        return ValidationResult(is_valid=False, error="Description should not end with a period.")
+
+    return ValidationResult(
+        is_valid=True,
+        type=commit_type,
+        scope=scope,
+        is_breaking=bool(breaking_marker),
+        description=desc,
+    )
