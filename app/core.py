@@ -1,44 +1,43 @@
-"""Sentient NLP Core Engine."""
-import re
-from typing import Dict, List, Tuple
-
-POSITIVE_LEXICON = {"great", "excellent", "fast", "love", "awesome", "good", "reliable", "easy", "clean"}
-NEGATIVE_LEXICON = {"bad", "slow", "error", "fail", "broken", "hate", "issue", "crash", "terrible", "bug"}
+"""Nexus Telemetry Core Engine."""
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Optional
 
 
-def tokenize(text: str) -> List[str]:
-    return [w.lower() for w in re.findall(r"\b[a-zA-Z]{2,}\b", text)]
+@dataclass
+class MetricRecord:
+    service_id: str
+    cpu_percent: float
+    memory_mb: float
+    status: str = "healthy"
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    def validate(self) -> None:
+        if not self.service_id or not self.service_id.strip():
+            raise ValueError("service_id must be a non-empty string.")
+        if not (0.0 <= self.cpu_percent <= 100.0):
+            raise ValueError(f"cpu_percent must be between 0 and 100, got {self.cpu_percent}")
+        if self.memory_mb < 0:
+            raise ValueError("memory_mb must be non-negative.")
 
 
-def compute_sentiment(text: str) -> Tuple[float, str]:
-    tokens = tokenize(text)
-    if not tokens:
-        return 0.0, "neutral"
+class TelemetryRegistry:
+    def __init__(self) -> None:
+        self._records: list[MetricRecord] = []
 
-    pos_count = sum(1 for t in tokens if t in POSITIVE_LEXICON)
-    neg_count = sum(1 for t in tokens if t in NEGATIVE_LEXICON)
-    total = pos_count + neg_count
+    def record_metric(self, metric: MetricRecord) -> MetricRecord:
+        metric.validate()
+        self._records.append(metric)
+        return metric
 
-    if total == 0:
-        return 0.0, "neutral"
+    def get_service_metrics(self, service_id: str) -> list[MetricRecord]:
+        return [r for r in self._records if r.service_id == service_id]
 
-    score = round((pos_count - neg_count) / total, 3)
-    if score > 0.15:
-        label = "positive"
-    elif score < -0.15:
-        label = "negative"
-    else:
-        label = "neutral"
+    def compute_average_cpu(self, service_id: Optional[str] = None) -> float:
+        matching = [r.cpu_percent for r in self._records if service_id is None or r.service_id == service_id]
+        if not matching:
+            return 0.0
+        return round(sum(matching) / len(matching), 2)
 
-    return score, label
-
-
-def classify_intent(text: str) -> str:
-    tokens = set(tokenize(text))
-    if {"bug", "crash", "error", "fail", "broken"} & tokens:
-        return "bug_report"
-    if {"how", "why", "help", "question", "docs"} & tokens:
-        return "inquiry"
-    if {"love", "great", "thanks", "awesome"} & tokens:
-        return "praise"
-    return "general_feedback"
+    def total_count(self) -> int:
+        return len(self._records)
